@@ -3,26 +3,54 @@
 
 const router = require('express-promise-router')();
 const graph = require('../graph.js');
-const addDays = require('date-fns/addDays');
-const formatISO = require('date-fns/formatISO');
-const startOfWeek = require('date-fns/startOfWeek');
-const zonedTimeToUtc = require('date-fns-tz/zonedTimeToUtc');
-const iana = require('windows-iana');
-const { body, validationResult } = require('express-validator');
-const validator = require('validator');
+const { formatDistance, parseISO  } = require('date-fns');
 
-
-function FileConvertSize(aSize){
-	aSize = Math.abs(parseInt(aSize, 10));
+function ConvertFileSize(size){
+	size = Math.abs(parseInt(size, 10));
 	var def = [[1, 'octets'], [1024, 'ko'], [1024*1024, 'Mo'], [1024*1024*1024, 'Go'], [1024*1024*1024*1024, 'To']];
-	for(var i=0; i<def.length; i++){
-		if(aSize<def[i][0]) return (aSize/def[i-1][0]).toFixed(2)+' '+def[i-1][1];
+	for(let i=0; i<def.length; i++){
+		if(size<def[i][0]) return (size/def[i-1][0]).toFixed(2)+' '+def[i-1][1];
 	}
+}
+
+function ConvertLastTimeModify(date){
+  return formatDistance(new Date(), parseISO(date), { includeSeconds: true }) 
 }
 
 function FileNameExtention(name){
   const regex = /(?:\.([^.]+))?$/;
   return regex.exec(name)[1];
+}
+
+function CheckFileType(obj){
+  if(obj.name) {
+    const ext = FileNameExtention(obj.name);
+    switch (ext) {
+      case 'docx':
+        obj.word = ext;
+        break;
+      case 'pptx':
+        obj.powerpoint = ext;
+        break;
+      case 'xlsx':
+        obj.excel = ext;
+        break;
+      case 'vsdx':
+        obj.drawing = ext;
+        break;
+      case 'pdf':
+        obj.pdf = ext;
+        break;
+      case 'PNG':
+      case 'jpg':
+      case 'jpeg':
+        obj.imageType = ext;
+        break;
+      default:
+        console.log(`Sorry, we do not know this extension : ${ext}.`);
+    }
+    return obj;
+  }
 }
 
 // <GetRouteSnippet>
@@ -46,43 +74,25 @@ router.get('/',
           req.app.locals.msalClient,
           req.session.userId);
 
-        console.log("mydrive ", myDrive);
+        // console.log("mydrive ", myDrive.value);
         myDrive.value.map( item => {
           
           if(item.file) {
-            
-            const ext = FileNameExtention(item.name);
-            
-            switch (ext) {
-              case 'docx':
-                item.word = ext;
-                break;
-              case 'pptx':
-                item.powerpoint = ext;
-                break;
-              case 'xlsx':
-                item.excel = ext;
-                break;
-              case 'vsdx':
-                item.drawing = ext;
-                break;
-              case 'pdf':
-                item.pdf = ext;
-                break;
-              case 'PNG':
-              case 'jpg':
-              case 'jpeg':
-                item.image = ext;
-                break;
-              default:
-                console.log(`Sorry, we do not know this extension : ${ext}.`);
-            }
+            // Add property 'type file' in current obj for hbs view
+            CheckFileType(item);
           } else if (item.package && item.package.type === 'oneNote') {
             item.onenote = item.package.type;
           }
+
           if(item.size) {
-            item.size = FileConvertSize(item.size);
+            item.size = ConvertFileSize(item.size);
           }
+
+          if(item.lastModifiedDateTime) {
+            // take the last date modify and return "about 3 hours"
+            item.lastModifiedDateTime = ConvertLastTimeModify(item.lastModifiedDateTime);
+          }
+
         })
         // Assign data drive to the view parameters
         params.drive = myDrive.value;
