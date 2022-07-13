@@ -15,6 +15,16 @@ module.exports = {
     return user;
   },
 
+  // <GetDriveViewSnippet>
+  getDriveView: async function(msalClient, userId) {
+  const client = getAuthenticatedClient(msalClient, userId);
+
+  return client
+    .api('/me/drive/root/children')
+    .get();
+  },
+  // </GetDriveViewSnippet>
+
   // <GetCalendarViewSnippet>
   getCalendarView: async function(msalClient, userId, start, end, timeZone) {
     const client = getAuthenticatedClient(msalClient, userId);
