@@ -5,13 +5,16 @@ const router = require('express-promise-router')();
 const { formatDistance, parseISO  } = require('date-fns');
 const graph = require('../graph.js');
 
-function ConvertFileSize(size){
-	size = Math.abs(parseInt(size, 10));
-	var def = [[1, 'octets'], [1024, 'ko'], [1024*1024, 'Mo'], [1024*1024*1024, 'Go'], [1024*1024*1024*1024, 'To']];
-	for(let i=0; i<def.length; i++){
-		if(size<def[i][0]) return (size/def[i-1][0]).toFixed(2)+' '+def[i-1][1];
-	}
-}
+function ConvertFileSize(fileSizeInBytes) {
+  var i = -1;
+  var byteUnits = [' kB', ' MB', ' GB', ' TB', 'PB', 'EB', 'ZB', 'YB'];
+  do {
+      fileSizeInBytes = fileSizeInBytes / 1024;
+      i++;
+  } while (fileSizeInBytes > 1024);
+
+  return Math.max(fileSizeInBytes, 0.1).toFixed(1) + byteUnits[i];
+};
 
 function ConvertLastTimeModify(date){
   return formatDistance(new Date(), parseISO(date), { includeSeconds: true }) 
@@ -95,6 +98,13 @@ router.get('/',
           }
 
         })
+        // Convert octet size for remaining / total / used
+        for (const property in myDrive[0].quota) {
+          if(property === 'remaining' || property === 'total' || property === 'used' ){
+            myDrive[0].quota[property] = ConvertFileSize(myDrive[0].quota[property]);
+          }
+        }
+
         // Assign data drive to the view parameters
         params.dashboard = myDrive[0].quota;
         params.drive = myDrive[1].value;
