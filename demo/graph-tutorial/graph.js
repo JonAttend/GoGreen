@@ -17,11 +17,16 @@ module.exports = {
 
   // <GetDriveViewSnippet>
   getDriveView: async function(msalClient, userId) {
-  const client = getAuthenticatedClient(msalClient, userId);
+    const client = getAuthenticatedClient(msalClient, userId);
 
-  return client
-    .api('/me/drive/root/children')
-    .get();
+    const stats = client.api('/me/drive').get()
+    const files = client.api('/me/drive/root/children').get()
+    const results = Promise.all([stats, files]).then((values) => {
+      return values;
+    }).catch(error => {
+      console.error(error.message)
+    });
+    return results
   },
   // </GetDriveViewSnippet>
 

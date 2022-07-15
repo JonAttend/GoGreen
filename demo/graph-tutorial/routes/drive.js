@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 const router = require('express-promise-router')();
-const graph = require('../graph.js');
 const { formatDistance, parseISO  } = require('date-fns');
+const graph = require('../graph.js');
 
 function ConvertFileSize(size){
 	size = Math.abs(parseInt(size, 10));
@@ -69,13 +69,14 @@ router.get('/',
       const user = req.app.locals.users[req.session.userId];
       
       try {
-        // Get the events
+        // Get the drive
         const myDrive = await graph.getDriveView(
           req.app.locals.msalClient,
           req.session.userId);
 
-        // console.log("mydrive ", myDrive.value);
-        myDrive.value.map( item => {
+          console.log("mydrive ", myDrive);
+        
+          myDrive[1].value.map( item => {
           
           if(item.file) {
             // Add property 'type file' in current obj for hbs view
@@ -95,7 +96,8 @@ router.get('/',
 
         })
         // Assign data drive to the view parameters
-        params.drive = myDrive.value;
+        params.dashboard = myDrive[0].quota;
+        params.drive = myDrive[1].value;
         // console.log(params.drive)
       } catch (err) {
         console.error(err)
